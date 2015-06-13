@@ -1,0 +1,18 @@
+namespace cloudsoft
+{
+	using System.IO;
+	using System.Collections;
+	using System.Collections.Generic;
+	public class Test5Serializer : Serializer {
+		public Test5()
+		{
+			SerializerOf = typeof(Test5);
+			
+			AddField(System.Boolean, Succeed, 1);
+			AddField(System.Single, DataSize, 2);
+			AddField(System.Single, SerializeTime, 3);
+			AddField(System.Single, DeserializeTime, 4);
+			AddField(System.String, Description, 5);
+			AddField(System.String, Error, 6);
+		}
+}
