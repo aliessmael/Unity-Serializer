@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using cloudsoft ;
+using System.Reflection;
+using System;
 
 public class SerializerTest : MonoBehaviour {
 
@@ -13,7 +15,7 @@ public class SerializerTest : MonoBehaviour {
 
 	/**/
 
-	Test[] tests ;
+	List<SerializerTestUnit> tests = new List<SerializerTestUnit>();
 	int currentTest = -1 ;
 	// Use this for initialization
 
@@ -24,27 +26,24 @@ public class SerializerTest : MonoBehaviour {
 	
 		try
 		{
-			tests = new Test[20];
-			tests[0] 	= new Test1();
-			tests[1] 	= new Test2();
-			tests[2] 	= new Test3();
-			tests[3] 	= new Test4();
-			tests[4] 	= new Test5();
-			tests[5] 	= new Test6();
-			tests[6] 	= new Test7();
-			tests[7] 	= new Test8();
-			tests[8] 	= new Test9();
-			tests[9] 	= new Test10();
-			tests[10] 	= new Test11();
-			tests[11] 	= new Test12();
-			tests[12] 	= new Test13();
-			tests[13] 	= new Test14();
-			tests[14] 	= new Test15();
-			tests[15] 	= new Test16();
-			tests[16] 	= new Test17();
-			tests[17] 	= new Test18();
-			tests[18] 	= new Test19();
-			tests[19] 	= new Test20();
+			foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				foreach (Type t in a.GetTypes())
+				{
+					if( t.IsSubclassOf( typeof(SerializerTestUnit)))
+					{
+						SerializerTestUnit r = (SerializerTestUnit)Activator.CreateInstance( t );
+
+						tests.Add( r );
+					}
+				}
+				
+			}
+
+			tests.Sort((a,b) => 
+			              { 
+				return a.Id.CompareTo(b.Id);
+			} );
 		}
 		catch( System.Exception e )
 		{
@@ -66,16 +65,12 @@ public class SerializerTest : MonoBehaviour {
 
 		if( currentTest == -1 )
 		{
-			if( GUILayout.Button("Start Test step by step" ,GUILayout.Width(200) , GUILayout.Height( 50 ) ) )
-			{
-				currentTest = 0  ;
-				tests[ currentTest ].DoTest();
-			}
+			GUILayout.BeginHorizontal();
 			if( GUILayout.Button("Do All Test" ,GUILayout.Width(200) , GUILayout.Height( 50 ) ))
 			{
 				succeed = 0 ;
 				float t = Time.realtimeSinceStartup ;
-				for( int i = 0 ; i < tests.Length ; i++ )
+				for( int i = 0 ; i < tests.Count ; i++ )
 				{
 					try{
 						tests[i].DoTest();
@@ -83,6 +78,7 @@ public class SerializerTest : MonoBehaviour {
 					catch( System.Exception e )
 					{
 						Debug.LogException( e );
+						Debug.LogError("Test " + i + " Failed");
 					}
 					if( tests[i].Succeed )
 						succeed ++ ;
@@ -90,39 +86,40 @@ public class SerializerTest : MonoBehaviour {
 				totalTime = Time.realtimeSinceStartup - t ;
 				allTestDone = true ;
 			}
+			if( GUILayout.Button("Start Test step by step" ,GUILayout.Width(200) , GUILayout.Height( 50 ) ) )
+			{
+				currentTest = 0  ;
+				tests[ currentTest ].DoTest();
+			}
+
+			GUILayout.EndHorizontal();
 			if( allTestDone )
 			{
-				GUILayout.Label( "Succeed Tests " + succeed +" / " + tests.Length );
+				GUILayout.Label( "Succeed Tests " + succeed +" / " + tests.Count );
 				GUILayout.Label( "Total Time " + totalTime );
 			}
 		}
 		else if( currentTest == 0 )
 		{
-			tests[ currentTest ].OnGUI();
+			GUILayout.BeginHorizontal();
+			if( GUILayout.Button("Home" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
+			{
+				currentTest = -1;
+			}
 			if( GUILayout.Button("Do Next Test" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
 			{
 				currentTest++ ;
-				if(currentTest < tests.Length ) 
+				if(currentTest < tests.Count ) 
 					tests[ currentTest ].DoTest();
 				else 
 					currentTest = -1 ;
 			}
+			GUILayout.EndHorizontal();
+			if( currentTest >= 0 )
+				tests[ currentTest ].OnGUI();
 		}
-		else if( currentTest == tests.Length - 1 )
+		else if( currentTest == tests.Count - 1 )
 		{
-			tests[ currentTest ].OnGUI();
-			if( GUILayout.Button("Do Previous Test" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
-			{
-				currentTest-- ;
-				if(currentTest>=0) 
-					tests[ currentTest ].DoTest();
-				else 
-					currentTest = tests.Length-1 ;
-			}
-		}
-		else
-		{
-			tests[ currentTest ].OnGUI();
 			GUILayout.BeginHorizontal();
 			if( GUILayout.Button("Do Previous Test" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
 			{
@@ -130,17 +127,37 @@ public class SerializerTest : MonoBehaviour {
 				if(currentTest>=0) 
 					tests[ currentTest ].DoTest();
 				else 
-					currentTest = tests.Length-1 ;
+					currentTest = tests.Count-1 ;
+			}
+			if( GUILayout.Button("Home" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
+			{
+				currentTest = -1;
+			}
+			GUILayout.EndHorizontal();
+			if( currentTest >= 0)
+				tests[ currentTest ].OnGUI();
+		}
+		else
+		{
+			GUILayout.BeginHorizontal();
+			if( GUILayout.Button("Do Previous Test" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
+			{
+				currentTest-- ;
+				if(currentTest>=0) 
+					tests[ currentTest ].DoTest();
+				else 
+					currentTest = tests.Count-1 ;
 			}
 			if( GUILayout.Button("Do Next Test" ,GUILayout.Width(200) , GUILayout.Height( 50 )) )
 			{
 				currentTest++ ;
-				if(currentTest<tests.Length) 
+				if(currentTest<tests.Count) 
 					tests[ currentTest ].DoTest();
 				else 
 					currentTest = -1 ;
 			}
 			GUILayout.EndHorizontal();
+			tests[ currentTest ].OnGUI();
 		}
 
 	}

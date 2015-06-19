@@ -3,7 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using cloudsoft ;
 
-public class Test8: Test {
+public class Test8: SerializerTestUnit {
+
+	public Test8()
+	{
+		Id = 8;
+	}
 
 	override public void DoTest()
 	{

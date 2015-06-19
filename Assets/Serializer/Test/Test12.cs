@@ -3,8 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using cloudsoft ;
 
-public class Test12: Test {
-	
+public class Test12: SerializerTestUnit {
+
+	public Test12()
+	{
+		Id = 12;
+	}
+
 	public class TestClass
 	{
 		public List<Vector3> vectors ;

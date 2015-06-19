@@ -286,6 +286,9 @@ public partial class SerializersEditor
 		
 			for( int i = 0 ; i < t.tHolder.SubTypes.Count ; i++ )
 			{
+				if( t.tHolder.SubTypes[i].Serializer == null )//add only subtype wich is serialized, otherwise System.Object will have huge subtypes
+					continue;
+
 				if( t.Subtypes.Find( x=> x.Type == t.tHolder.SubTypes[i].Type) != null )
 					continue;
 
@@ -595,6 +598,32 @@ public partial class SerializersEditor
 			}
 		}
 	}
+	void FindSerializerCode(object obj)
+	{
+		List<object> list = (List<object>)obj;
+		for( int i = 0 ; i < list.Count ; i++ )
+		{
+			if( list[i] is Serializer )
+			{
+				Serializer t = list[i] as Serializer ;
+				if(!string.IsNullOrEmpty( t.CodePath ))
+				{
+					var code = AssetDatabase.LoadAssetAtPath( t.CodePath , typeof(System.Object));
+					//Selection.objects = new UnityEngine.Object[]{code};
+					EditorGUIUtility.PingObject( code);
+				}
+			}
+			/*else 
+			{
+				SerializerField m = (SerializerField) list[i];
+				foreach( TypeHolder h in m.Types )
+				{
+
+				}
+				
+			}*/
+		}
+	}
 	void AddThisType (object obj) {
 		List<object> list = (List<object>)obj;
 		for( int i = 0 ; i < list.Count ; i++ )
@@ -751,6 +780,7 @@ public partial class SerializersEditor
 	string redColorStr  = "";
 	string orangeColorStr  = "";
 	string yelloColorStr  = "";
+	string colorEnd  = "</color>";
 	public void DrawSerializerdTypes()
 	{
 		if( string.IsNullOrEmpty( labelColorStr))
@@ -855,7 +885,7 @@ public partial class SerializersEditor
 		else 
 		{
 			GUILayout.BeginHorizontal(  ZeroStyle );
-			GUILayout.Box(" ",NonStyle);
+			GUILayout.Box(" ",ZeroStyle);
 			GUILayout.EndHorizontal();
 		}
 
@@ -880,18 +910,14 @@ public partial class SerializersEditor
 				else if( t.hasMemberWithMissingType )
 					color = redColorStr;
 				string typeStr = "";
-				/*if( t.SerializerOf.Index > 0 )
-					typeStr +=  yelloColorStr + t.SerializerOf.Index + " </color>" ;*/
+
 
 				if( toRemove.Contains(t))
-					typeStr += redColorStr + "to delete </color>"; 
-				typeStr +=  color + t.tHolder.TypeStr.Replace("+",".") + "</color>";
+					typeStr += redColorStr + "to delete" + colorEnd; 
+				typeStr +=  color + t.tHolder.TypeStr.Replace("+",".") + colorEnd;
 				if( t.SerializerOf.BaseType!=null && t.SerializerOf.BaseType != null && t.SerializerOf.BaseType != typeof(System.Object) && t.SerializerOf.BaseType != typeof(System.ValueType))
-					typeStr += blueColorStr + " : " + t.SerializerOf.BaseType.ToString() + "</color>";
-				if(  t.BytesWritten > 0 )
-					typeStr += greenColorStr + " " + t.WrittenCount + " (" + t.BytesWritten+ ")</color>";
-				if(  t.WriteTime > 0 )
-					typeStr += greenColorStr + " t:(" + t.WriteTime.ToString("0.000") + ")</color>";
+					typeStr += blueColorStr + " : " + t.SerializerOf.BaseType.ToString() + colorEnd;
+
 
 				if( selected.Contains( t ) )
 				{
@@ -923,12 +949,7 @@ public partial class SerializersEditor
 				}
 				if( GUILayout.Button(str,NonStyle))
 				{
-					if(!string.IsNullOrEmpty( t.CodePath ))
-					{
-						var code = AssetDatabase.LoadAssetAtPath( t.CodePath , typeof(System.Object));
-						//Selection.objects = new UnityEngine.Object[]{code};
-						EditorGUIUtility.PingObject( code);
-					}
+
 				}
 				tempRect = GUILayoutUtility.GetLastRect();
 				tempRect.x = serializedRect.x + serializedRect.width - Size.x * 2 ;
@@ -995,17 +1016,14 @@ public partial class SerializersEditor
 						else
 							memberStr += member.Name ;
 
-						memberStr += "</color>";
+						memberStr += colorEnd;
 						string color = blueColorStr ;
 						if( member.Toggled && member.isMemberTypeMissing )
 							color = ":" + redColorStr;
 						//if( member.Type.IsEnum )
-						//memberStr += color + " " + member.Index.ToString()+ "</color>";
-						memberStr += color + member.Type.ToString()+ "</color>";
-						if( member.BytesWritten > 0 )
-						{
-							memberStr += greenColorStr+ " ("+ member.BytesWritten+")</color>";
-						}
+						//memberStr += color + " " + member.Index.ToString()+ colorEnd;
+						memberStr += color + member.Type.ToString()+ colorEnd;
+
 
 
 						if( selected.Contains(member) )
@@ -1078,8 +1096,8 @@ public partial class SerializersEditor
 		}
 		else
 		{
-			GUILayout.BeginHorizontal(  GUILayout.Height(1f) );
-			GUILayout.Box(" ",NonStyle);
+			GUILayout.BeginHorizontal(  ZeroStyle );
+			GUILayout.Box(" ",ZeroStyle);
 			GUILayout.EndHorizontal();
 		}
 
@@ -1115,14 +1133,7 @@ public partial class SerializersEditor
 				SerializerSystem.serializers[i].foldout = false;
 			}
 		}
-		if( GUILayout.Button("reset debug"))
-		{
-			_searchText = "";
-			for( i = 0 ; i < SerializerSystem.serializers.Count ; i++ )
-			{
-				SerializerSystem.serializers[i].ResetDebug();
-			}
-		}
+
 		GUILayout.FlexibleSpace();
 		if( GUILayout.Button("Save"))
 		{
@@ -1137,6 +1148,7 @@ public partial class SerializersEditor
 			if( contextObject != null && contextObject.Count > 0 )
 			{
 				GenericMenu menu = new GenericMenu();
+				menu.AddItem( new GUIContent("Find Serializer Code"),false,FindSerializerCode,contextObject);
 				menu.AddItem( new GUIContent("Add This Type"),false,AddThisType,contextObject);
 				menu.AddItem( new GUIContent("Add All Subclass of this"),false,AddAllTypesInheriteThis,contextObject);
 				menu.AddItem( new GUIContent("Add All Missing member types"),false,AddAllMisingMemberTypes,contextObject);
@@ -1245,7 +1257,8 @@ public partial class SerializersEditor
 
 		string path = EditorPrefs.GetString("serializer_code_path" , "");
 		path = EditorUtility.SaveFolderPanel("Code Generate" , path , "" );
-		EditorPrefs.SetString("serializer_code_path" , path);
+		if( !string.IsNullOrEmpty(path))
+			EditorPrefs.SetString("serializer_code_path" , path);
 		
 
 		

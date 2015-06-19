@@ -2,13 +2,18 @@ using UnityEngine;
 using System.Collections;
 using cloudsoft ;
 
-public class Test9: Test {
+public class Test9: SerializerTestUnit {
+
+	public Test9()
+	{
+		Id = 9;
+	}
 
 	Texture2D a = null ;
 	Texture2D b = null ;
 	override public void DoTest()
 	{
-		Description = "Test 9 Succeed : Serialize Deserialize UnityEngine.Texture2D by using proxy, check Texture2DProxy class" ;
+		Description = "Test 9 Succeed : Serialize Deserialize UnityEngine.Texture2D" ;
 		Succeed = false ;
 
 		a = Resources.Load<Texture2D>("serializer");

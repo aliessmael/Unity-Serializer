@@ -4,9 +4,12 @@ using System.Collections;
 using System.Collections.Generic;
 using cloudsoft ;
 
-public class Test2: Test {
+public class Test2: SerializerTestUnit {
 
-
+	public Test2()
+	{
+		Id = 2;
+	}
 	List<TestClass> testList = new List<TestClass>();
 	override public void DoTest()
 	{
@@ -39,7 +42,7 @@ public class Test2: Test {
 		float time = Time.realtimeSinceStartup ;
 		for( int i = 0 ; i < testList.Count ; i++ )
 		{
-			Debug.Log("Serialize Test : " + i );
+			//Debug.Log("Serialize Test : " + i );
 			TestClass t = testList[i];
 			t.d = SerializerSystem.Serialize( t.value );
 			DataSize += t.d.Length ;
@@ -50,7 +53,7 @@ public class Test2: Test {
 		time = Time.realtimeSinceStartup ;
 		for( int i = 0 ; i < testList.Count ; i++ )
 		{
-			Debug.Log("Deserialize Test : " + i );
+			//Debug.Log("Deserialize Test : " + i );
 			TestClass t = testList[i];
 			object dValue = SerializerSystem.Deserialize( t.d , t.value.GetType() );
 			Array array1 = (Array)t.value ;
@@ -58,11 +61,13 @@ public class Test2: Test {
 			if( dValue == null )
 			{
 				Error = "array is null";
+				Debug.LogError( Error );
 				return ;
 			}
 			if( array1.Length != array2.Length)
 			{
 				Error = "array lengths are not same  array1.Length = " + array1.Length + " array2.Length = " + array2.Length ;
+				Debug.LogError( Error );
 				return;
 			}
 			for( int j = 0 ; j < array2.Length ; j++ )
@@ -70,6 +75,7 @@ public class Test2: Test {
 				if( !array2.GetValue(j).Equals( array1.GetValue(j) ) )
 				{
 					Error = "value is not same for " + t.value.GetType() + " " + t.value ;
+					Debug.LogError( Error );
 					return;
 				}
 			}

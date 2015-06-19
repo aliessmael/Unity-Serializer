@@ -11,11 +11,32 @@ using System.Collections.Generic;
 
 public partial class SerializersEditor 
 {
-
 	Vector2 inspectorScrollPosition;
 	Rect inspectorRect;
+	int inspectorStartIndex;
+	int inspectorTotalVisibleCount;
 	public void DrawInspector()
 	{
+		//if( selected == null || selected.Count == 0 )
+		//	return ;
+
+		Serializer ser = null;
+		if( selected != null && selected.Count > 0 )
+		{
+			if( selected[0] is Serializer )
+			{
+				ser = selected[0] as Serializer;
+			}
+			else if( selected[0] is SerializerField)
+			{
+				SerializerField member = (SerializerField)selected[0];
+				ser = member.Types[0].Serializer ;
+			}
+		}
+
+		//if( ser == null || ser.Subtypes.Count == 0 )
+		//	return;
+
 		inspectorRect.x = 0f;
 		inspectorRect.y = Screen.height*0.8f ;
 		inspectorRect.width = Screen.width ;
@@ -24,8 +45,75 @@ public partial class SerializersEditor
 		GUILayout.BeginArea(inspectorRect);
 
 		inspectorScrollPosition = EditorGUILayout.BeginScrollView( inspectorScrollPosition );
+		inspectorStartIndex = (int)(inspectorScrollPosition.y /Size.y)  ;
+		inspectorTotalVisibleCount = (int)(inspectorRect.height  / Size.y) ;
 
-		string labelStr = "";
+
+		if( ser == null || (ser.Subtypes.Count < inspectorTotalVisibleCount) ) 
+			inspectorStartIndex = 0 ;
+		else if( inspectorStartIndex > ser.Subtypes.Count - inspectorTotalVisibleCount )
+		{
+			inspectorStartIndex = ser.Subtypes.Count - inspectorTotalVisibleCount ;
+		}
+		if( inspectorStartIndex < 0 ) inspectorStartIndex = 0 ;
+		
+		
+		//allTypeSelectedIndex = Mathf.Clamp( allTypeSelectedIndex , -1 , ser.Subtypes.Count -1);
+		int beforeHeight = (int)(inspectorStartIndex*Size.y) ;
+		if( beforeHeight > 0 )
+		{
+			GUILayout.BeginHorizontal(  GUILayout.Height( beforeHeight ) );
+			GUILayout.Box(" " ,NonStyle );
+			GUILayout.EndHorizontal();
+		}
+		else 
+		{
+			GUILayout.BeginHorizontal(  NonStyle );
+			GUILayout.Box(" " , NonStyle );
+			GUILayout.EndHorizontal();
+		}
+
+		int index = 0 ;
+		int currentVisible = 0 ;
+		for( int i = inspectorStartIndex ;  currentVisible  <= inspectorTotalVisibleCount ; i++ )
+		{
+			string str = "";
+			if( ser != null && (i < ser.tHolder.SubTypes.Count) )
+			{
+				if( ser.tHolder.SubTypes[i].Serializer != null )
+					str = greenColorStr + ser.tHolder.SubTypes[i].Type.ToString() + colorEnd;
+				else 
+					str = redColorStr + ser.tHolder.SubTypes[i].Type.ToString() + colorEnd;
+			}
+			if( currentVisible >= inspectorTotalVisibleCount )
+			{
+				break;
+			}
+
+			GUILayout.BeginHorizontal();
+			GUILayout.Button(str, NonStyle);
+			GUILayout.EndHorizontal();
+			currentVisible++;
+			index++;
+		}
+
+		int afterHeight = 0;
+		if( ser != null )
+			afterHeight = (int)((ser.Subtypes.Count - (inspectorStartIndex + index) )*Size.y) ;
+		if( afterHeight > 0 )
+		{
+			//fill invisible gap after scroller to make proper scroller pos
+			GUILayout.BeginHorizontal(  GUILayout.Height(afterHeight ) );
+			GUILayout.Box(" ",NonStyle);
+			GUILayout.EndHorizontal();
+		}
+		else
+		{
+			GUILayout.BeginHorizontal(  ZeroStyle );
+			GUILayout.Box(" ",NonStyle);
+			GUILayout.EndHorizontal();
+		}
+		/*string labelStr = "";
 		int linesCount = 0;
 		labelStr +=  "Subclass : \n";
 		linesCount++;
@@ -103,13 +191,13 @@ public partial class SerializersEditor
 					string loop_path = "";
 					for( int l = 0 ; l < t.Loop.Count ; l++ )
 						loop_path +=  t.Loop[l].TypeStr +  "->" ;
-					labelStr += "<color=#ff0000>Error in " + t.SerializerOf + " type is looped ->" + loop_path + "</color>" ;
+					labelStr += "<color=#ff0000>Error in " + t.SerializerOf + " type is looped ->" + loop_path + colorEnd ;
 					linesCount++;
 				}
 			}
 		}
 
-		GUILayout.Label( labelStr , InspectorLabelStyle , GUILayout.Height(Size.y * linesCount));
+		GUILayout.Label( labelStr , InspectorLabelStyle , GUILayout.Height(Size.y * linesCount));*/
 
 		EditorGUILayout.EndScrollView();
 		GUILayout.EndArea();

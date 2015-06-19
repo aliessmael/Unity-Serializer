@@ -114,12 +114,14 @@ public class SerializerSystem  {
 	{
 		try
 		{
+			Serializer ser = GetSerializerOf(ref type );
+
 			if( data == null )
-				return null;
+				return ser.DefaultValue;
 
 			stream.Clear();
 			stream.Set( data );
-			Serializer ser = GetSerializerOf(ref type );
+
 			return Read(stream,type,ser);
 		}
 		catch( System.Exception e )
@@ -141,6 +143,11 @@ public class SerializerSystem  {
 			}
 			Type type = obj.GetType();
 			Serializer ser = GetSerializerOf(ref type );
+			if( ser == null )
+				throw new System.Exception( "Can not find serializer of " + obj.GetType());
+
+			if( ser.DefaultValue != null && ser.DefaultValue.Equals(obj) )
+				return null;
 			Write( stream , obj, ser);
 			return stream.ToArray() ;
 		}
@@ -170,10 +177,8 @@ public class SerializerSystem  {
 		if( ser == null )
 			throw new System.Exception( "Can not find serializer of " + obj.GetType());
 		int length = 0 ;
-
 		length += ser.Write( stream, obj );
-		ser.BytesWritten += length ;
-		ser.WrittenCount++;
+
 		return length;
 	}
 

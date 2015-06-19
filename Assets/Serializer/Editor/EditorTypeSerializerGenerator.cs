@@ -40,6 +40,11 @@ public class EditorTypeSerializerGenerator
 		this.ser = ser;
 
 		typeName = ser.SerializerOf.ToString().Replace(".","_").Replace("+","_") ;
+
+		addCodeLine("/*");
+		addCodeLine("* Generated from " + SystemInfo.deviceName + " at " + System.DateTime.Now );
+		addCodeLine("* */");
+		addCodeLine("");
 		addCodeLine("namespace cloudsoft");
 		addCodeLine("{");
 		tabCount++;
@@ -51,7 +56,7 @@ public class EditorTypeSerializerGenerator
 		addSerializerClass();
 		addCodeLine("");
 
-		if( !type.IsAbstract )
+		//if( !type.IsAbstract )
 			addExtenderClass();
 
 		tabCount--;
@@ -136,105 +141,173 @@ public class EditorTypeSerializerGenerator
 		addCodeLine("}");
 	}
 
-	string getWriteString( Type t, string name )
+	string getWriteString( SerializerField f )
 	{
-		string writeString = "Write" + t.ToString().Replace("+","_").Replace(".","_")  + "(value." + name + ");";
+		Type t = f.Type;
+		string name = f.Name ;
+		string writeString = "Write" + t.ToString().Replace("+","_").Replace(".","_")  + "(value." + name + ", true, "+  f.Id +");";
 		if( t.IsArray )
-			writeString = "WriteArray( value." + name + ");";
+			writeString = "WriteArray( value." + name + ", true, "+  f.Id +");";
 		else if( t.IsGenericType && ( t.GetGenericTypeDefinition() == typeof(List<>) ))
-			writeString = "WriteList( value." + name + ");";
+			writeString = "WriteList( value." + name + ", true, "+  f.Id +");";
 		else if( t.IsGenericType && ( t.GetGenericTypeDefinition() == typeof(Dictionary<,>) ))
-			writeString = "WriteDictionary( value." + name + " );";
+			writeString = "WriteDictionary( value." + name + ", true, "+  f.Id +" );";
 		
 		return writeString ;
 	}
 	void addExtenderWrite()
 	{
-		addCodeLine("public int Write" + typeName + "( " + type.ToString().Replace("+",".") + " value)");
+
+
+		addCodeLine("public int Write" + typeName + "( " + type.ToString().Replace("+",".") + " value, bool dontWriteDefault = false, int slot = -1)");
 		addCodeLine("{");
 		tabCount++;
+
+		SerializerField f = new SerializerField( type , "value" );
+		string def = getDefaultExpression( f );
+		addCodeLine("if ( dontWriteDefault && " + def + ")");
+		tabCount++;
+		addCodeLine("return 0;");
+		tabCount--;
+
+		addCodeLine("");
 		addCodeLine("int dataSize = 0;");
-		for( int i = 0 ; i < ser.Fields.Count ; i++ )
+		addCodeLine("");
+		//Serializer ser = SerializerSystem.GetSerializerOf( ref type );
+
+
+
+		if( !type.IsAbstract )
 		{
-			if( !ser.Fields[i].Toggled )
-				continue;
-
-			SerializerField field = ser.Fields[i];
-
-			if( type.IsEnum )
+			if( ser.CanHasSubtype && ser.Subtypes.Count > 0 )
 			{
-				addCodeLine("if ((value == " + type.ToString().Replace("+",".")+ "." +field.Name + " ))");
+				addCodeLine("if( value.GetType() == typeof( " + type.ToString().Replace("+",".") + " ))");
 				addCodeLine("{");
 				tabCount++;
-				addCodeLine("dataSize += WriteSystem_UInt32(" + field.Id + ");");
-				addCodeLine("return dataSize;");
-				tabCount--;
-				addCodeLine("}");
-
 			}
-			else 
+
+			addCodeLine("if( slot != -1 )");
+			addCodeLine("{");
+			tabCount++;
+			addCodeLine("dataSize += WriteSlotInfo( slot );");
+			tabCount--;
+			addCodeLine("}");
+			//addCodeLine("WriteSlotInfo(slot,0);");
+			for( int i = 0 ; i < ser.Fields.Count ; i++ )
 			{
+				SerializerField field = ser.Fields[i];
 				
-				string def = getDefaultExpression( field );
-				addCodeLine("if ( " + def + ")");
-				addCodeLine("{");
-				tabCount++;
-
-				Serializer fSer = SerializerSystem.GetSerializerOf( ref field.Type );
-
-				if( !field.Type.IsAbstract && fSer.Subtypes.Count == 0 )
-				{
-					addCodeLine("dataSize += WriteFieldInfo(" + field.Id + ");");
-					addCodeLine("dataSize += " + getWriteString( field.Type, field.Name) );
-				}
-				else 
-				{
-					for( int j = 0 ; j < fSer.Subtypes.Count ; j++ )
-					{
-						SubtypeSerializer sub = fSer.Subtypes[j];
-						if( !sub.Type.IsAbstract)
-						{
-							addCodeLine( sub.Type.ToString().Replace("+",".") + " sub" + j + " = value." + field.Name + " as " + sub.Type.ToString().Replace("+",".") + ";");
-							addCodeLine( "if (sub" + j +" != null)");
-							addCodeLine("{");
-							tabCount++;
-							addCodeLine( "dataSize += WriteFieldInfo( " + field.Id + ", " + sub.Id + " );");
-							addCodeLine( "dataSize += Write" + sub.Type.ToString().Replace("+","_").Replace(".","_") + "(sub" + j + ");");
-							addCodeLine( "goto FinishSub" + field.Id + ";");
-							tabCount--;
-							addCodeLine("}");
-
-						}
-					}
-					addCodeLine("FinishSub" + field.Id + ":;");
-				}
+				if( !field.Toggled )
+					continue;
 				
-				tabCount--;
-				addCodeLine("}");
+				if( field.IsDeleted )
+					continue;
+				
+				addCodeLine("dataSize += " + getWriteString( field ) );
+				
 			}
 
-		}
-
-
-
-		if( !type.IsEnum )
-		{
 			addCodeLine("dataSize += WriteSystem_UInt32(0u);");
 			addCodeLine("return dataSize;");
+			if( ser.CanHasSubtype && ser.Subtypes.Count > 0 )
+			{
+				tabCount--;
+				addCodeLine("}");
+			}
 		}
-		else 
+		
+		if( ser.Subtypes.Count > 0 )
 		{
-			addCodeLine("throw new System.Exception(\" Can not find index of \" + value );") ;
+		
+			for( int j = 0 ; j < ser.Subtypes.Count ; j++ )
+			{
+				SubtypeSerializer sub = ser.Subtypes[j];
+				if( !sub.Type.IsAbstract)
+				{
+					addCodeLine( sub.Type.ToString().Replace("+",".") + " sub" + j + " = value as " + sub.Type.ToString().Replace("+",".") + ";");
+					addCodeLine( "if (sub" + j +" != null)");
+					addCodeLine("{");
+					tabCount++;
+					addCodeLine( "dataSize += WriteSlotInfo( slot, " +  sub.Id + " );");
+					addCodeLine( "dataSize += Write" + sub.Type.ToString().Replace("+","_").Replace(".","_") + "(sub" + j + ");");
+					//addCodeLine( "goto FinishSub ;");
+					addCodeLine("return dataSize;");
+					tabCount--;
+					addCodeLine("}");
+					
+				}
+			}
+
 		}
 
+		if( ser.CanHasSubtype && ser.Subtypes.Count > 0 )
+			addCodeLine("throw new System.Exception(\"Can not find serializer for \" + value.GetType());");
+		tabCount--;
+		addCodeLine("}");
+	}
+	void addExtenderWriteEnum()
+	{
+		
+		
+		addCodeLine("public int Write" + typeName + "( " + type.ToString().Replace("+",".") + " value, bool dontWriteDefault = false, int slot = -1)");
+		addCodeLine("{");
+		tabCount++;
+		
+		SerializerField f = new SerializerField( type , "value" );
+		string def = getDefaultExpression( f );
+		addCodeLine("if ( dontWriteDefault && " + def + ")");
+		tabCount++;
+		addCodeLine("return 0;");
+		tabCount--;
+		
+		addCodeLine("");
+		addCodeLine("int dataSize = 0;");
+		addCodeLine("");
+		Serializer ser = SerializerSystem.GetSerializerOf( ref type );
+		
+		
+		addCodeLine("if( slot != -1 )");
+		addCodeLine("{");
+		tabCount++;
+		addCodeLine("dataSize += WriteSlotInfo( slot );");
+		tabCount--;
+		addCodeLine("}");
 
+
+		for( int i = 0 ; i < ser.Fields.Count ; i++ )
+		{
+			SerializerField field = ser.Fields[i];
+			
+			if( !field.Toggled )
+				continue;
+			
+			if( field.IsDeleted )
+				continue;
+			
+			addCodeLine("if ((value == " + type.ToString().Replace("+",".")+ "." +field.Name + " ))");
+			addCodeLine("{");
+			tabCount++;
+			addCodeLine("dataSize += WriteSystem_UInt32(" + field.Id + ");");
+			addCodeLine("return dataSize;");
+			tabCount--;
+			addCodeLine("}");
+
+			
+		}
+
+		addCodeLine("throw new System.Exception(\" Can not find index of \" + value );") ;
+		
+		
 		tabCount--;
 		addCodeLine("}");
 	}
 
 	string getReadString( Type t )
 	{
-		string readString = "Read" + t.ToString().Replace("+","_").Replace(".","_") + "();";
+		string readString = "Read" + t.ToString().Replace("+","_").Replace(".","_") + "( typeId );";
+		Serializer ser = SerializerSystem.GetSerializerOf( ref t );
+		if( ser != null && !ser.CanHasSubtype)
+			readString = "Read" + t.ToString().Replace("+","_").Replace(".","_") + "( );";
 		if( t.IsArray )
 		{
 			string ss = t.GetElementType().ToString().Replace("+",".") + "[]";
@@ -255,100 +328,120 @@ public class EditorTypeSerializerGenerator
 	}
 	void addExtenderRead()
 	{
-		addCodeLine("public " + type.ToString().Replace("+",".") + " Read" + typeName + "( )");
+		addCodeLine("public " + type.ToString().Replace("+",".") + " Read" + typeName + "( uint subType = 0 )");
 		addCodeLine("{");
 		tabCount++;
 
-		if( type.IsEnum )
+		addCodeLine( "if( subType == 0 )");
+		addCodeLine("{");
+		tabCount++;
+		if( type.IsAbstract )
 		{
-			addCodeLine( "uint enumId = ReadSystem_UInt32();");
+			addCodeLine("throw new System.Exception(\"Can not read abstract class " + type + "\");");
 		}
 		else 
 		{
 			addCodeLine( type.ToString().Replace("+",".") + " value = new " + type.ToString().Replace("+",".") + "();");
 			addCodeLine( "int fieldId = 1;");
 			addCodeLine( "uint typeId = 1;");
-			addCodeLine( "for ( ;  ;  )");
+			addCodeLine( "while( true )");
 			addCodeLine("{");
 			tabCount++;
-			addCodeLine("ReadFieldInfo(out fieldId, out typeId);");
+			addCodeLine("ReadSlotInfo(out fieldId, out typeId);");
 			addCodeLine("if (fieldId == 0)");
 			addCodeLine("{");
 			tabCount++;
 			addCodeLine("break;");
 			tabCount--;
 			addCodeLine("}");
-		}
 
-
-		for( int i = 0 ; i < ser.Fields.Count ; i++ )
-		{
-			SerializerField field = ser.Fields[i];
-			if( !field.Toggled )
-				continue;
-
-			if( type.IsEnum )
+			for( int i = 0 ; i < ser.Fields.Count ; i++ )
 			{
-				addCodeLine("if (enumId == " + field.Id + ")");
+				SerializerField field = ser.Fields[i];
+				
+				if( field.IsDeleted )
+					continue;
+				
+				if( !field.Toggled )
+					continue;
+				
+				addCodeLine("if (fieldId == " + field.Id + ")" );
 				addCodeLine("{");
 				tabCount++;
-				addCodeLine("return " + type.ToString().Replace("+",".") + "." + field.Name + ";");
-				tabCount--;
-				addCodeLine("}");
-			}
-			else 
-			{
-				addCodeLine("if (fieldId == " + field.Id + ") // " + field.Name);
-				addCodeLine("{");
-				tabCount++;
-
-				if( !field.Type.IsAbstract )
-				{
-					addCodeLine("if (typeId == 0)");
-					addCodeLine("{");
-					tabCount++;
-
-					addCodeLine("value." + field.Name + " = " + getReadString(field.Type) );
-					addCodeLine("continue;");
-					tabCount--;
-					addCodeLine("}");
-			
-				}
-				Serializer fSer = SerializerSystem.GetSerializerOf( ref field.Type );
-
-				for( int j = 0 ; j < fSer.Subtypes.Count ;  j++ )
-				{
-					SubtypeSerializer subType = fSer.Subtypes[j];
-					if( !subType.Type.IsAbstract)
-					{
-						addCodeLine("if (typeId == " + subType.Id + ") // " + subType.Type.ToString());
-						addCodeLine("{");
-						tabCount++;
-						addCodeLine("value." + field.Name + " = Read" + subType.Type.ToString().Replace("+","_").Replace(".","_")+ "( );");
-						addCodeLine("continue;");
-						tabCount--;
-						addCodeLine("}");
-					}
-				}
-
+				
+				addCodeLine("value." + field.Name + " = " + getReadString(field.Type) );
+				addCodeLine("continue;");
+				
+				
 				tabCount--;
 				addCodeLine("}");
 			}
 		}
 
-		if( type.IsEnum )
+		tabCount--;
+		addCodeLine("}");
+		
+		if( !type.IsAbstract )
 		{
-			addCodeLine( "throw new System.Exception(\"Can not find enum of index \" + enumId);");
-		}
-		else 
-		{
+			addCodeLine( "return value;");
 			tabCount--;
 			addCodeLine("}");
-			addCodeLine( "return value;");
 		}
+		
+
+		for( int j = 0 ; j < ser.Subtypes.Count ;  j++ )
+		{
+			SubtypeSerializer subType = ser.Subtypes[j];
+			if( !subType.Type.IsAbstract)
+			{
+				addCodeLine("if (subType == " + subType.Id + ")" );
+				addCodeLine("{");
+				tabCount++;
+				addCodeLine("return  Read" + subType.Type.ToString().Replace("+","_").Replace(".","_")+ "( 0 );");
+				tabCount--;
+				addCodeLine("}");
+			}
+		}
+		
+		addCodeLine("throw new System.Exception(\"Can not Read" + typeName + "\");");
+
 		tabCount--;
 		addCodeLine("}");
 
+	}
+	void addExtenderReadEnum()
+	{
+		addCodeLine("public " + type.ToString().Replace("+",".") + " Read" + typeName + "( uint subType = 0 )");
+		addCodeLine("{");
+		tabCount++;
+		
+		addCodeLine( "uint enumId = ReadSystem_UInt32();");
+
+		
+		
+		for( int i = 0 ; i < ser.Fields.Count ; i++ )
+		{
+			SerializerField field = ser.Fields[i];
+			
+			if( field.IsDeleted )
+				continue;
+			
+			if( !field.Toggled )
+				continue;
+			
+			addCodeLine("if (enumId == " + field.Id + ")");
+			addCodeLine("{");
+			tabCount++;
+			addCodeLine("return " + type.ToString().Replace("+",".") + "." + field.Name + ";");
+			tabCount--;
+			addCodeLine("}");
+		}
+		
+		addCodeLine( "throw new System.Exception(\"Can not find enum of index \" + enumId);");
+
+		tabCount--;
+		addCodeLine("}");
+		
 	}
 
 	void addExtenderClass()
@@ -357,9 +450,16 @@ public class EditorTypeSerializerGenerator
 		addCodeLine("{");
 		tabCount++;
 
-		addExtenderWrite();
+		if( type.IsEnum )
+			addExtenderWriteEnum();
+		else
+			addExtenderWrite();
+
 		addCodeLine("");
-		addExtenderRead();
+		if( type.IsEnum )
+			addExtenderReadEnum();
+		else
+			addExtenderRead();
 		addCodeLine("");
 
 		//addIsDefaultValue();
@@ -379,19 +479,19 @@ public class EditorTypeSerializerGenerator
 			if( defStr != "0" && defStr != "false")
 			{
 				if( f.Type.IsEnum ) 
-					return "value." + f.Name + " != " + f.Type.ToString().Replace("+",".") + "." + defaultValue.ToString();
+					return "" + f.Name + " == " + f.Type.ToString().Replace("+",".") + "." + defaultValue.ToString();
 				else
-					return "value."+ f.Name + " != " + f.Type.ToString().Replace("+","_").Replace(".","_") + "_Serializer.defaultValue"  ;
+					return ""+ f.Name + " == " + f.Type.ToString().Replace("+","_").Replace(".","_") + "_Serializer.defaultValue"  ;
 			}
 			else 
 			{
-				return "value." + f.Name + " != " + defStr ;
+				return "" + f.Name + " == " + defStr ;
 			}
 		}
 		if( f.Type == typeof(string))
-			return "!string.IsNullOrEmpty( value." + f.Name + ")";
+			return "string.IsNullOrEmpty( " + f.Name + ")";
 		else
-			return "value." + f.Name + " != null ";
+			return "" + f.Name + " == null ";
 	}
 
 

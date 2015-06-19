@@ -23,7 +23,7 @@ public class SerializerEditorWindow : EditorWindow {
 	SerializersEditor editor = new SerializersEditor();
 
 
-	[MenuItem ("Tools/Serialize")]
+	[MenuItem ("aliessmael/Serialize")]
 	static void Init () {
 		SerializerEditorWindow window = (SerializerEditorWindow)EditorWindow.GetWindow (typeof (SerializerEditorWindow));
 		window.name = "Serializers";

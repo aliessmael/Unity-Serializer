@@ -3,8 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using cloudsoft ;
 
-public class Test7: Test {
-	
+public class Test7: SerializerTestUnit {
+
+	public Test7()
+	{
+		Id = 7;
+	}
+
 	public class Person
 	{
 		public string 		name ;
@@ -26,7 +31,7 @@ public class Test7: Test {
 
 	override public void DoTest()
 	{
-		Description = "Test 7 Succeed : Serialize + Deserialize Custom class with dynamic type field" ;
+		Description = "Test 7 Succeed : Serialize + Deserialize Custom class" ;
 		Succeed = false ;
 
 		TestClass a = new TestClass();
@@ -42,40 +47,41 @@ public class Test7: Test {
 		TestClass b = SerializerSystem.Deserialize<TestClass>( d );
 		DeserializeTime = (Time.realtimeSinceStartup-t);
 
-		if( a.friends.Count == b.friends.Count )
+		if( a.friends.Count != b.friends.Count)
 		{
-
-			if(b.bestFriend.GetType() != typeof(Friend ))
+			Error = "friends count is not same";
+			Debug.LogError( Error );
+			return;
+		}
+		if(b.bestFriend.GetType() != typeof(Friend ))
+		{
+			Error = "bestFriend is not Friend type";
+			Debug.LogError( Error );
+			return;
+		}
+		if(  b.friends[0].GetType() != typeof(Person ))
+		{
+			Error = " b.friends[0] is not Person type";
+			return;
+		}
+		if(  b.friends[1].GetType() != typeof(Friend ))
+		{
+			Error = " b.friends[1] is not Friend type";
+			Debug.LogError( Error );
+			return;
+		}
+		for( int i = 0 ; i < b.friends.Count ; i++ )
+		{
+			
+			if( !a.friends[i].name.Equals( b.friends[i].name )||
+			   a.friends[i].age != b.friends[i].age ||
+			   !a.friends[i].phone.Equals( b.friends[i].phone) ||
+			   !a.friends[i].address.Equals( b.friends[i].address) )
 			{
-				Error = "bestFriend is not Friend type";
+				Error = "a.friends[i] not b.friends[i]";
+				Debug.LogError( Error );
 				return;
 			}
-			else
-			{
-				if(  b.friends[0].GetType() != typeof(Person ))
-				{
-					Error = " b.friends[0] is not Person type";
-					return;
-				}
-				if(  b.friends[1].GetType() != typeof(Friend ))
-				{
-					Error = " b.friends[1] is not Friend type";
-					return;
-				}
-				for( int i = 0 ; i < b.friends.Count ; i++ )
-				{
-					
-					if( !a.friends[i].name.Equals( b.friends[i].name )||
-					   a.friends[i].age != b.friends[i].age ||
-					   !a.friends[i].phone.Equals( b.friends[i].phone) ||
-					   !a.friends[i].address.Equals( b.friends[i].address) )
-					{
-						Error = "a.friends[i] not b.friends[i]";
-						return;
-					}
-				}
-			}
-			
 		}
 		Succeed = true ;
 	}

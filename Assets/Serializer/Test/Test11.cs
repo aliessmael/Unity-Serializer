@@ -1,48 +1,83 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic ;
 using cloudsoft ;
 
-public class Test11: Test {
+public class Test11: SerializerTestUnit {
+
+	public Test11()
+	{
+		Id = 11;
+	}
+
+	public enum PersonTag
+	{
+		none,
+		tag1,
+		tag2,
+		tag3
+	}
+	public class Person
+	{
+		public string 		name ;
+		public int 			age ;
+		public string 		phone ;
+		public string 		address ;
+		public string 		address2 ;
+		public bool       	isMale;
+		public PersonTag    tag;
+	}
+	public class Friend : Person 
+	{
+		public string email ;
+		public string password ;
+	}
+	
+	public class TestClass
+	{
+		public Person		bestFriend = new Person();
+		public Person		worsFriend = null ;
+		public List<Person> friends = new List<Person>();
+		//[SerializableMember]
+		//public int Count ;
+	}
 
 	override public void DoTest()
 	{
-		return;
-		/*Description = "Test 11 Succeed : Serialize + Deserialize (SerializerSettings)";
+		Description = "Test 11 Succeed : Serialize + Deserialize Custom class contains List of 10000 item of custom class " ;
 		Succeed = false ;
-		Serializers a = Serializers.Local ;
-		float t = Time.realtimeSinceStartup ;
-		byte[] d = Serializers.Serialize<Serializers>( a );
-		DataSize = d.Length ;
-		SerializeTime = (Time.realtimeSinceStartup-t);
-		t = Time.realtimeSinceStartup ;
 
-		Serializers b = Serializers.Deserialize<Serializers>( d );
-		DeserializeTime = (Time.realtimeSinceStartup-t);
-
-		for( int i = 0 ; i < a.serializers.Count ; i++  )
+		TestClass a = new TestClass();
+		for( int i = 0 ; i < 10000 ; i++ )
 		{
-			if( a.serializers.Count != b.serializers.Count )
+			a.friends.Add( new Person(){ name = "n"+i, age = 21+i , phone = "p"+i , address = "a"+i});
+		}
+		float t = Time.realtimeSinceStartup ;
+		byte[] d =  SerializerSystem.Serialize( a );
+		DataSize = d.Length ;
+		SerializeTime = ( Time.realtimeSinceStartup - t ) ;
+		t = Time.realtimeSinceStartup ;
+		TestClass b = SerializerSystem.Deserialize<TestClass>( d );
+		DeserializeTime = (Time.realtimeSinceStartup-t);
+		if( a.friends.Count != b.friends.Count )
+		{
+			Error = "Count is not same";
+			Debug.LogError( Error );
+			return ;
+		}
+		for( int i = 0 ; i < a.friends.Count ; i++ )
+		{
+			if( !a.friends[i].name.Equals(  b.friends[i].name)||
+			   a.friends[i].age != b.friends[i].age ||
+			   !a.friends[i].phone.Equals( b.friends[i].phone) ||
+			   !a.friends[i].address.Equals(  b.friends[i].address) )
 			{
-				Error = "count is not match";
-				return ;
-			}
-			if( a.serializers[ i].SerializerOf != b.serializers[ i ].SerializerOf )
-			{
-				Error = "type is not match";
-				return ;
-			}
-			if( a.serializers[ i].lastVersion != b.serializers[ i ].lastVersion )
-			{
-				Error = "version is not match";
-				return ;
-			}
-			if( a.serializers[ i].holder != b.serializers[ i ].holder )
-			{
-				Error = "proxy is not match";
-				return ;
+				Error = "test "+ i + " : Values are not same";
+				Debug.LogError( Error );
+				return;
 			}
 		}
-		Succeed = true ;*/
-		//tests[10].Data = "succeed , size is " + ((float)d.Length /1024) + " kb" ;
+
+		Succeed = true ;
 	}
 }

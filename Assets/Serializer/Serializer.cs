@@ -15,19 +15,6 @@ namespace cloudsoft
 	}
 	public class Serializer
 	{
-		public int WrittenCount = 0 ;
-		public int BytesWritten = 0 ;
-		public float WriteTime = 0f;
-
-		public int FieldsBytesWritten{
-			get{
-				int bytesCount = 0 ;
-				for( int i = 0 ; i < Fields.Count ; i++ )
-					bytesCount += Fields[i].BytesWritten ;
-				return bytesCount;
-			}
-		}
-
 
 		public List<SerializerField> Fields = new List<SerializerField>();
 		public bool HasField(Type type, string name )//used in editor
@@ -54,7 +41,7 @@ namespace cloudsoft
 		}
 
 		public Type SerializerOf ;
-
+		public bool CanHasSubtype = true;
 
 	
 
@@ -72,6 +59,7 @@ namespace cloudsoft
 		}
 		public SubtypeSerializer GetSubtype( ref Type t )
 		{
+
 			for( int i = 0 ; i < Subtypes.Count ; i++ )
 			{
 				if( Subtypes[i].IsNew )
@@ -122,17 +110,6 @@ namespace cloudsoft
 		public virtual object Read( SerializerStream stream , Type type)
 		{
 			return null;
-		}
-
-		public void ResetDebug()
-		{
-			WrittenCount = 0;
-			BytesWritten = 0;
-			WriteTime = 0;
-			for( int i = 0 ; i < Fields.Count; i++ )
-			{
-				Fields[i].BytesWritten = 0;
-			}
 		}
 
 		public void SetFieldsSerializers()

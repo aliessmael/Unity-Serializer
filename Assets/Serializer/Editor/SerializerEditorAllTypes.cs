@@ -242,7 +242,7 @@ public partial class SerializersEditor
 			}
 
 			TypeHolder h = filteredTypes[allTypesStartIndex +index];
-			string typeStr = labelColorStr +  h.TypeStr + "</color>";
+			string typeStr = labelColorStr +  h.TypeStr + colorEnd;
 			if( allTypesSelected.Contains( h ) )
 			{
 				GUILayout.BeginHorizontal( SelectedStyle);
@@ -267,7 +267,7 @@ public partial class SerializersEditor
 			}
 			Type baseType = h.Type.BaseType ;
 			if( baseType != null && baseType != typeof(object) && baseType != typeof(ValueType))
-				typeStr += blueColorStr + " : " + baseType.ToString() + "</color>" ;
+				typeStr += blueColorStr + " : " + baseType.ToString() + colorEnd ;
 			GUILayout.Button(typeStr, NonStyle);
 			//GUILayout.FlexibleSpace();
 			GUILayout.EndHorizontal();

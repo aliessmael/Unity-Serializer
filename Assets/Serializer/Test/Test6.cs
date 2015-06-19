@@ -3,8 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using cloudsoft ;
 
-public class Test6: Test {
-	
+public class Test6: SerializerTestUnit {
+
+	public Test6()
+	{
+		Id = 6;
+	}
+
 	public class Person
 	{
 		public string 		name ;
@@ -27,7 +32,7 @@ public class Test6: Test {
 
 	override public void DoTest()
 	{
-		Description = "Test 6 Succeed : Serialize + Deserialize Custom class with fixed type field" ;
+		Description = "Test 6 Succeed : Serialize + Deserialize Custom class " ;
 		Succeed = false ;
 
 		TestClass a = new TestClass();
@@ -42,33 +47,35 @@ public class Test6: Test {
 		t = Time.realtimeSinceStartup ;
 		TestClass b = SerializerSystem.Deserialize<TestClass>( d );
 		DeserializeTime = (Time.realtimeSinceStartup-t);
-		if( a.friends.Count == b.friends.Count )
+		if(a.friends.Count != b.friends.Count)
 		{
-			if(b.bestFriend.GetType() != typeof(Friend ))
+			Error = "Count is not same ";
+			Debug.LogError( Error );
+			return;
+		}
+		if(b.bestFriend.GetType() != typeof(Friend ))
+		{
+			Error = "Different type";
+			Debug.LogError( Error );
+			return;
+		}
+		for( int i = 0 ; i < b.friends.Count ; i++ )
+		{
+			if(  b.friends[i].GetType() != a.friends[i].GetType())
 			{
 				Error = "Different type";
+				Debug.LogError( Error );
 				return;
 			}
-			else
+			if( !a.friends[i].name.Equals( b.friends[i].name )||
+			   a.friends[i].age != b.friends[i].age ||
+			   !a.friends[i].phone.Equals( b.friends[i].phone) ||
+			   !a.friends[i].address.Equals( b.friends[i].address) )
 			{
-				for( int i = 0 ; i < b.friends.Count ; i++ )
-				{
-					if(  b.friends[i].GetType() != a.friends[i].GetType())
-					{
-						Error = "Different type";
-						return;
-					}
-					if( !a.friends[i].name.Equals( b.friends[i].name )||
-					   a.friends[i].age != b.friends[i].age ||
-					   !a.friends[i].phone.Equals( b.friends[i].phone) ||
-					   !a.friends[i].address.Equals( b.friends[i].address) )
-					{
-						Error = "Value are different";
-						return;
-					}
-				}
+				Error = "Value are different";
+				Debug.LogError( Error );
+				return;
 			}
-			
 		}
 
 		Succeed = true ;

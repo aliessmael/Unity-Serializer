@@ -12,7 +12,7 @@ namespace cloudsoft
 		public string Name ;
 		public int    Id = int.MaxValue;
 		public int    IndexInArray;
-		public int 	  BytesWritten;
+		//public int 	  BytesWritten;
 		public object Value;
 
 		public bool   IsNew = false ;
@@ -39,10 +39,9 @@ namespace cloudsoft
 
 
 		//for editor
-		//public SerializersEditor    Manager;
+
 		public bool 				Toggled;
 		public Serializer 			Owner;
-		//public bool 				IsSerialized;
 		public FieldInfo 			field;
 		public PropertyInfo 		property;
 
@@ -120,10 +119,13 @@ namespace cloudsoft
 					if( h.Serializer == null )
 						return true;
 
-					for( int j = 0 ; j < h.SubTypes.Count ; j++ )
+					if( h.Serializer.CanHasSubtype )
 					{
-						if( h.SubTypes[j].Serializer == null )
-							return true;
+						for( int j = 0 ; j < h.SubTypes.Count ; j++ )
+						{
+							if( h.SubTypes[j].Serializer == null )
+								return true;
+						}
 					}
 				}
 				
@@ -152,31 +154,31 @@ namespace cloudsoft
 
 	public partial class SerializerStream
 	{
-		public int WriteFieldInfo( int index,  uint typeIndex = 0 )
+		public int WriteSlotInfo( int slot,  uint subTypeId = 0 )
 		{
-			int writeType = (typeIndex > 0)? 1: 0;
-			uint num = (uint) (((index) << 1) | writeType );
+			int writeType = (subTypeId > 0)? 1: 0;
+			uint num = (uint) (((slot) << 1) | writeType );
 			int size = WriteSystem_UInt32(num);
 			
 			if( writeType == 1 )
 			{
-				size += WriteSystem_UInt32(typeIndex);
+				size += WriteSystem_UInt32(subTypeId);
 			}
 			return size;
 		}
 		
-		public void ReadFieldInfo(out int fieldIndex , out uint typeId)
+		public void ReadSlotInfo(out int slot , out uint typeId)
 		{
 			uint data = ReadSystem_UInt32();
 			if( data == 0 )
 			{
-				fieldIndex = 0 ;
+				slot = 0 ;
 				typeId = 0;
 				return;
 			}
 			
 			int readType = (int)(data  & 0x1 );
-			fieldIndex = (int)(data >> 1) ;
+			slot = (int)(data >> 1) ;
 			
 			if( readType == 1 )
 			{

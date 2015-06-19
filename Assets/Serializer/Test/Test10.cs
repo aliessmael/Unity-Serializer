@@ -2,8 +2,13 @@ using UnityEngine;
 using System.Collections;
 using cloudsoft ;
 
-public class Test10: Test {
-	
+public class Test10: SerializerTestUnit {
+
+	public Test10()
+	{
+		Id = 10;
+	}
+
 	public class TestClass
 	{
 		public Texture2D faceImage ;
